@@ -5,9 +5,9 @@ program main
   implicit none
 
   external :: sgesv
-  integer, parameter :: SCREEN_WIDTH  = 500
-  integer, parameter :: SCREEN_HEIGHT = 400
-  real, parameter :: MOLEKULA_RADIUS = 5
+  integer, parameter :: SCREEN_WIDTH  = 800
+  integer, parameter :: SCREEN_HEIGHT = 450
+  real, parameter :: MOLEKULA_RADIUS = 6
   real, parameter :: ELASTIC_COEFF = 0.95
   
   type :: dvector
@@ -175,8 +175,8 @@ contains
                 v1_length_par = vdot(collision_dir, particles(i)%speed)
                 v2_length_par = vdot(collision_dir, particles(ii)%speed)
 
-                v1_orth = vscale(collision_norm, v2_length)
-                v2_orth = vscale(collision_norm, v1_length)
+                v1_orth = vscale(collision_norm, (v1_length + v2_length - ELASTIC_COEFF*(v1_length - v2_length)) / 2)
+                v2_orth = vscale(collision_norm, (v2_length + v1_length - ELASTIC_COEFF*(v2_length - v1_length)) / 2)
 
                 v1_par = vscale(collision_dir, v1_length_par)
                 v2_par = vscale(collision_dir, v2_length_par)
@@ -193,12 +193,12 @@ contains
 
        if (particles(i)%pos%x >= SCREEN_WIDTH - MOLEKULA_RADIUS .or. particles(i)%pos%x <= MOLEKULA_RADIUS) then
           particles(i)%speed%x = -particles(i)%speed%x
-          particles(i)%speed = vscale(particles(i)%speed, ELASTIC_COEFF)
+          ! particles(i)%speed = vscale(particles(i)%speed, ELASTIC_COEFF)
        end if
 
        if (particles(i)%pos%y >= SCREEN_HEIGHT - MOLEKULA_RADIUS .or. particles(i)%pos%y <= MOLEKULA_RADIUS) then
           particles(i)%speed%y = -particles(i)%speed%y
-          particles(i)%speed = vscale(particles(i)%speed, ELASTIC_COEFF)
+          ! particles(i)%speed = vscale(particles(i)%speed, ELASTIC_COEFF)
        end if
 
        particles(i)%pos = vadd(particles(i)%pos, vscale(particles(i)%speed, dt))
