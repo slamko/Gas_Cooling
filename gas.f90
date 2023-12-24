@@ -8,7 +8,7 @@ program main
   integer, parameter :: SCREEN_WIDTH  = 800
   integer, parameter :: SCREEN_HEIGHT = 450
   real, parameter :: MOLEKULA_RADIUS = 6
-  real, parameter :: ELASTIC_COEFF = 0.95
+  real, parameter :: ELASTIC_COEFF = 0.0
   
   type :: dvector
      double precision :: x
@@ -22,8 +22,9 @@ program main
   end type particle
   
   type(particle), dimension (16) :: particles
-  integer, parameter :: FPS = 60
+  integer, parameter :: FPS = 512
   real :: dt
+  character(12) :: str
   dt = 1.0 / FPS
  
   print *, 'Hello world'
@@ -34,7 +35,6 @@ program main
 
   call init_window(SCREEN_WIDTH, SCREEN_HEIGHT, 'Fortran raylib' // c_null_char)
   call set_target_fps(fps)
-  
 
   do while (.not. window_should_close())
      call begin_drawing()
@@ -43,7 +43,8 @@ program main
      call update_particles(particles, size(particles))
      call end_drawing()
 
-     print *, calc_temp(particles, size(particles))
+     write (str, '(f8.2)') calc_temp(particles, size(particles))
+     call draw_text('E =' // str // '(relative units)' //c_null_char, 5, 10, 18, GRAY)
   end do
 
   call close_window()
