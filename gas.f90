@@ -8,6 +8,8 @@ program main
   integer, parameter :: SCREEN_WIDTH  = 500
   integer, parameter :: SCREEN_HEIGHT = 400
   real, parameter :: MOLEKULA_RADIUS = 5
+  real, parameter :: ELASTIC_COEFF = 0.95
+  
   type :: dvector
      double precision :: x
      double precision :: y
@@ -40,6 +42,8 @@ program main
      call draw_particles(particles, size(particles))
      call update_particles(particles, size(particles))
      call end_drawing()
+
+     print *, calc_temp(particles, size(particles))
   end do
 
   call close_window()
@@ -114,16 +118,21 @@ contains
     real :: mag
     type (vector2_type) :: vec
 
-    mag = sqrt(v1%x * v1%x + v1%y * v1%y)
+    mag = sqrt((v1%x**2)+ (v1%y**2))
     vec%x = v1%x / mag
     vec%y = v1%y / mag
   end function 
 
   function calc_temp (particles, length) result(temp)
     type(particle), dimension(*) :: particles
-    integer :: length
+    integer :: length, i 
+    real :: temp
+
+    do i = 1, length
+       temp = temp + vmag(particles(i)%speed)
+    end do
+    temp = sqrt(temp)
   end function calc_temp
- 
 
   subroutine update_particles (particles, length)
     type(particle), dimension(*) :: particles
@@ -135,7 +144,7 @@ contains
     type(vector2_type) :: pos1, pos2
     type (vector2_type) :: speed
     type (vector2_type) :: collision_norm, collision_dir, v1_par, v1_orth, v2_par, v2_orth
-    real :: v1_length, v2_length, common_vel, v1_length_after, v2_length_after
+    real :: v1_length, v1_length_par, v2_length, v2_length_par, common_vel, v1_length_after, v2_length_after
 
     do i = 1, length
 
@@ -149,13 +158,31 @@ contains
           if (i < ii) then
              if (vmag(vsub(pos1, pos2)) < (2 * MOLEKULA_RADIUS) + 0.1) then
 
-                v1_length = vdot(vsub(particles(i)%speed, particles(ii)%speed), vsub(pos1, pos2))
-                v2_length = vdot(vsub(particles(ii)%speed, particles(i)%speed), vsub(pos2, pos1))
-                v1_par = vscale(vsub(pos1, pos2), v1_length / (vmag(vsub(pos1, pos2)) ** 2))
-                v2_par = vscale(vsub(pos2, pos1),  v2_length / (vmag(vsub(pos2, pos1)) ** 2))
+!!$                v1_length = vdot(vsub(particles(i)%speed, particles(ii)%speed), vsub(pos1, pos2))
+!!$                v2_length = vdot(vsub(particles(ii)%speed, particles(i)%speed), vsub(pos2, pos1))
+!!$                v1_par = vscale(vsub(pos1, pos2), v1_length / (vmag(vsub(pos1, pos2)) ** 2))
+!!$                v2_par = vscale(vsub(pos2, pos1),  v2_length / (vmag(vsub(pos2, pos1)) ** 2))
+!!$
+                ! particles(i)%speed = vscale(vsub(particles(i)%speed, v1_par), ELASTIC_COEFF)
+                ! particles(ii)%speed = vscale(vsub(particles(ii)%speed, v2_par), ELASTIC_COEFF)
 
-                particles(i)%speed = vsub(particles(i)%speed, v1_par)
-                particles(ii)%speed = vsub(particles(ii)%speed, v2_par)
+                collision_norm = vnormalize(vsub(pos1, pos2))
+                collision_dir = vector2_type(-collision_norm%y, collision_norm%x)
+
+                v1_length = vdot(particles(i)%speed, collision_norm)
+                v2_length = vdot(particles(ii)%speed, collision_norm)
+
+                v1_length_par = vdot(collision_dir, particles(i)%speed)
+                v2_length_par = vdot(collision_dir, particles(ii)%speed)
+
+                v1_orth = vscale(collision_norm, v2_length)
+                v2_orth = vscale(collision_norm, v1_length)
+
+                v1_par = vscale(collision_dir, v1_length_par)
+                v2_par = vscale(collision_dir, v2_length_par)
+
+                particles(i)%speed = vadd(v1_par, v1_orth)
+                particles(ii)%speed = vadd(v2_par, v2_orth)
 
                 particles(i)%pos = vadd(particles(i)%pos, vscale(particles(i)%speed, dt))
                 particles(ii)%pos = vadd(particles(ii)%pos, vscale(particles(ii)%speed, dt))
@@ -166,10 +193,12 @@ contains
 
        if (particles(i)%pos%x >= SCREEN_WIDTH - MOLEKULA_RADIUS .or. particles(i)%pos%x <= MOLEKULA_RADIUS) then
           particles(i)%speed%x = -particles(i)%speed%x
+          particles(i)%speed = vscale(particles(i)%speed, ELASTIC_COEFF)
        end if
 
        if (particles(i)%pos%y >= SCREEN_HEIGHT - MOLEKULA_RADIUS .or. particles(i)%pos%y <= MOLEKULA_RADIUS) then
           particles(i)%speed%y = -particles(i)%speed%y
+          particles(i)%speed = vscale(particles(i)%speed, ELASTIC_COEFF)
        end if
 
        particles(i)%pos = vadd(particles(i)%pos, vscale(particles(i)%speed, dt))
